@@ -13,6 +13,13 @@ const envSchema = z.object({
   DB_PASSWORD: z.string().min(1, "DB_PASSWORD is required"),
   DB_NAME: z.string().min(1, "DB_NAME is required"),
   DB_SCHEMA: z.string().min(1, "DB_SCHEMA is required"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+  JWT_EXPIRES_IN: z
+    .string()
+    .min(1, "JWT_EXPIRES_IN is required")
+    .transform(
+      (value) => value as `${number}${"s" | "m" | "h" | "d" | "w" | "y"}`,
+    ),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -42,5 +49,9 @@ export const env = {
     password: config.DB_PASSWORD,
     database: config.DB_NAME,
     schema: config.DB_SCHEMA,
+  },
+  jwt: {
+    secret: config.JWT_SECRET,
+    expiresIn: config.JWT_EXPIRES_IN,
   },
 };
