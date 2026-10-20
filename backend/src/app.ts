@@ -1,10 +1,12 @@
 import express from "express";
 import { middlewares } from "./middlewares/application.middleware";
+import routes from "./routes";
 
 const app = express();
 
 app.use(middlewares);
-app.get("/", (_req, res) => {
+app.use("/api", routes);
+app.get("/api/v1/health", (_req, res) => {
   res.status(200).json({
     status: 200,
     message: "Server is running successfully",
