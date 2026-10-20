@@ -3,8 +3,8 @@ import { BaseEntity } from "../../../common/database/base.entity";
 import { Container } from "./container.entity";
 import { CONTAINER_EVENT_TYPE } from "../../../common/enum";
 
-@Entity("container_events")
-@Index("IDX_container_events_container_time", ["container", "occurredAt"])
+@Entity("events")
+@Index("IDX_events_container_time", ["container", "occurredAt"])
 export class ContainerEvent extends BaseEntity {
   @Column({
     name: "event_type",

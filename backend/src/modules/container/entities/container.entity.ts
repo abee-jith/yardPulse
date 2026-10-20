@@ -18,7 +18,7 @@ import { BaseEntity } from "../../../common/database/base.entity";
 import { VesselVisit } from "./vessel-visit.entity";
 import { Hold } from "./hold.entity";
 import { ContainerEvent } from "./event.entity";
-import { Appointment } from "./appointment.entity";
+import { Appointment } from "../../appointment/appointment.entity";
 
 @Entity("container")
 @Index("UQ_container_no", ["containerNo"], {
@@ -74,13 +74,6 @@ export class Container extends BaseEntity {
     nullable: false,
   })
   status!: CONTAINER_STATUS;
-
-  @Column({
-    name: "vessel_visit_id",
-    type: "uuid",
-    nullable: true,
-  })
-  vesselVisitId!: string | null;
 
   @Column({
     name: "yard_location",

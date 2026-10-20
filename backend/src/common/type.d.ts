@@ -42,6 +42,15 @@ declare global {
     role: string;
     lineCode: string | null;
   }
+
+  interface ContainerSeed {
+    containerNo: string;
+    lineCode: LINE_CODE;
+    sizeFt: number;
+    status: string;
+    dischargedAt: Date;
+    activeHold: boolean;
+  }
 }
 
 export {};

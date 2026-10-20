@@ -14,18 +14,15 @@ export async function seedUsers(dataSource: DataSource): Promise<void> {
 
     if (existingUser) continue;
 
-    const hashedPassword = await bcrypt.hash(seedUser.password, 10);
+    const { password, ...userData } = seedUser;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = userRepository.create({
-      fullName: seedUser.fullName,
-      email: seedUser.email,
-      hashedPassword,
-      role: seedUser.role,
-      lineCode: seedUser.lineCode,
-    });
-
-    await userRepository.save(user);
-    console.log(`Created user: ${seedUser.email}`);
+    await userRepository.save(
+      userRepository.create({
+        ...userData,
+        hashedPassword,
+      }),
+    );
   }
 
   console.log("User seeding completed.");

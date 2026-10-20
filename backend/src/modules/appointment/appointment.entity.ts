@@ -1,8 +1,8 @@
 import { Entity, Column, ManyToOne, JoinColumn, Index } from "typeorm";
-import { BaseEntity } from "../../../common/database/base.entity";
-import { APPOINTMENT_STATUS } from "../../../common/enum";
-import { Container } from "./container.entity";
-import { User } from "../../user/entities/user.entity";
+import { APPOINTMENT_STATUS } from "../../common/enum";
+import { Container } from "../container/entities/container.entity";
+import { User } from "../user/entities/user.entity";
+import { BaseEntity } from "../../common/database/base.entity";
 
 @Entity("appointments")
 @Index("IDX_appointments_slot_status", ["slotStart", "status"])

@@ -1,7 +1,7 @@
 import { Entity, Column, Index, OneToMany } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
 import { LINE_CODE, USER_ROLE } from "../../../common/enum";
-import { Appointment } from "../../container/entities/appointment.entity";
+import { Appointment } from "../../appointment/appointment.entity";
 
 @Entity("user")
 @Index("UQ_email_active", ["email"], {

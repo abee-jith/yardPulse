@@ -16,37 +16,37 @@ enum CONTAINER_SIZE_FT {
 }
 
 enum FREIGHT_KIND {
-  FULL = "FULL",
-  EMPTY = "EMPTY",
+  FULL = "Full",
+  EMPTY = "Empty",
 }
 
 enum CONTAINER_STATUS {
-  ON_VESSEL = "ON_VESSEL",
-  IN_YARD = "IN_YARD",
-  DEPARTED = "DEPARTED",
+  ON_VESSEL = "On vessel",
+  IN_YARD = "In yard",
+  DEPARTED = "Departed",
 }
 
 enum HOLD_TYPE {
-  CUSTOMS = "CUSTOMS",
-  LINE = "LINE",
-  INSPECTION = "INSPECTION",
-  TERMINAL = "TERMINAL",
+  CUSTOMS = "Customs",
+  LINE = "Line",
+  INSPECTION = "Inspection",
+  TERMINAL = "Terminal",
 }
 
 enum CONTAINER_EVENT_TYPE {
-  DISCHARGED = "DISCHARGED",
-  YARD_MOVE = "YARD_MOVE",
-  HOLD_PLACED = "HOLD_PLACED",
-  HOLD_RELEASED = "HOLD_RELEASED",
-  APPOINTMENT_BOOKED = "APPOINTMENT_BOOKED",
-  APPOINTMENT_CANCELLED = "APPOINTMENT_CANCELLED",
-  GATE_OUT = "GATE_OUT",
+  DISCHARGED = "Discharged",
+  YARD_MOVE = "Yard move",
+  HOLD_PLACED = "Hold placed",
+  HOLD_RELEASED = "Hold released",
+  APPOINTMENT_BOOKED = "Appointment booked",
+  APPOINTMENT_CANCELLED = "Appointment cancelled",
+  GATE_OUT = "Gate out",
 }
 
 enum APPOINTMENT_STATUS {
-  BOOKED = "BOOKED",
-  CANCELLED = "CANCELLED",
-  COMPLETED = "COMPLETED",
+  BOOKED = "Booked",
+  CANCELLED = "Cancelled",
+  COMPLETED = "Completed",
 }
 
 export {

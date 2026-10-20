@@ -12,4 +12,9 @@ export const listContainersSchema = z.object({
   cursor: z.coerce.number().int().positive().optional(),
 });
 
+export const findContainerSchema = z.object({
+  containerNumber: z.string().trim().max(100),
+});
+
 export type ListContainersQuery = z.infer<typeof listContainersSchema>;
+export type FindContainerQuery = z.infer<typeof findContainerSchema>;

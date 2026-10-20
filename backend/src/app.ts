@@ -6,7 +6,7 @@ const app = express();
 
 app.use(middlewares);
 app.use("/api", routes);
-app.get("/", (_req, res) => {
+app.get("/api/v1/health", (_req, res) => {
   res.status(200).json({
     status: 200,
     message: "Server is running successfully",

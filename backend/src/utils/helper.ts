@@ -1,6 +1,13 @@
 import { QueryFailedError } from "typeorm";
 import { env } from "../config/env";
 
+export const daysAgo = (days: number, hour: number): Date => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  date.setUTCHours(hour, 0, 0, 0);
+  return date;
+};
+
 export function entityNotFoundError(entity: String) {
   return {
     status: 404,
@@ -27,17 +34,6 @@ export function parseErrorRespose<T extends boolean = false>({
     data: null,
     ...(count ? { count: null } : {}),
   });
-
-  if (error instanceof Error && error.message.includes("ENTITY_NOT_FOUND")) {
-    const entityName = error.message
-      .split(":")[1]
-      ?.toLowerCase()
-      .replace(/^\w/, (char) => char.toUpperCase());
-
-    return createResponse(404, `${entityName} not found`) as T extends true
-      ? ServiceResponseWithCount
-      : ServiceResponse;
-  }
 
   if (error instanceof QueryFailedError) {
     const driverError = error.driverError as DriveError;

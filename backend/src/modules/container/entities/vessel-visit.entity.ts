@@ -2,7 +2,7 @@ import { Entity, Column, OneToMany, Index } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
 import { Container } from "./container.entity";
 
-@Entity("vessel_visits")
+@Entity("visits")
 @Index("UQ_vessel_visit_ref", ["visitRef"], {
   unique: true,
   where: '"deleted_at" IS NULL',
