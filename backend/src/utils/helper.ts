@@ -1,10 +1,15 @@
 import { env } from "../config/env";
+import { DateTime } from "luxon";
+
+export const TERMINAL_TIME_ZONE = "Asia/Dubai";
 
 export const daysAgo = (days: number, hour: number): Date => {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - days);
-  date.setUTCHours(hour, 0, 0, 0);
-  return date;
+  return DateTime.now()
+    .setZone(TERMINAL_TIME_ZONE)
+    .minus({ days })
+    .set({ hour, minute: 0, second: 0, millisecond: 0 })
+    .toUTC()
+    .toJSDate();
 };
 
 export function entityNotFoundError(entity: string) {
@@ -40,7 +45,7 @@ export function parseErrorRespose({
 
   if (env.nodeEnv === "development") console.error(message, error);
   return createResponse(
-    "https://yardpulse.test/problems/server-errors",
+    "https://yardpulse.test/problems/internal-error",
     "Internal server error",
     500,
     "internal_error",

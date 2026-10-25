@@ -39,5 +39,14 @@ export function sendServiceResponse(
 ) {
   const body = "body" in result ? result.body : result;
   if (isProblem(body)) return sendProblem(res, body);
+  if (result.status >= 400) {
+    return sendProblem(res, {
+      type: "https://yardpulse.test/problems/internal-error",
+      title: "Internal server error",
+      status: 500,
+      code: "internal_error",
+      detail: "An unexpected error occurred. Please try again later.",
+    });
+  }
   return res.status(result.status).json(body);
 }

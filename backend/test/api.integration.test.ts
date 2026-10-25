@@ -139,6 +139,13 @@ describe("YardPulse PostgreSQL API integration", () => {
       .send({ ...body, truck_plate: "DXB-54321" });
     expect(changedBody.status).toBe(422);
     expect(changedBody.body.code).toBe("idempotency_key_reused");
+    expect(changedBody.headers["content-type"]).toContain("application/problem+json");
+    expect(changedBody.body).toMatchObject({
+      type: expect.any(String),
+      title: expect.any(String),
+      status: 422,
+      detail: expect.any(String),
+    });
   });
 
   it("allows exactly one of ten parallel bookings when a slot has one seat", async () => {
@@ -176,6 +183,16 @@ describe("YardPulse PostgreSQL API integration", () => {
     const fullSlotResponses = responses.filter((response) => response.status === 409);
     expect(fullSlotResponses).toHaveLength(9);
     expect(fullSlotResponses.every((response) => response.body.code === "slot_full")).toBe(true);
+    expect(fullSlotResponses[0].headers["content-type"]).toContain(
+      "application/problem+json",
+    );
+    expect(fullSlotResponses[0].body).toMatchObject({
+      type: "https://yardpulse.test/problems/slot-full",
+      title: "Slot is full",
+      status: 409,
+      code: "slot_full",
+      detail: expect.any(String),
+    });
   });
 
   it("returns 404 when a customer requests another line's container", async () => {
@@ -183,7 +200,45 @@ describe("YardPulse PostgreSQL API integration", () => {
       .get("/api/v1/containers/BRLU0000017")
       .set("Authorization", `Bearer ${aliceToken}`);
     expect(response.status).toBe(404);
+    expect(response.headers["content-type"]).toContain("application/problem+json");
     expect(response.body.code).toBe("not_found");
+    expect(response.body).toMatchObject({
+      type: expect.any(String),
+      title: expect.any(String),
+      status: 404,
+      detail: expect.any(String),
+    });
+  });
+
+  it("returns the same problem shape for unauthenticated requests", async () => {
+    const response = await request(app).get("/api/v1/me");
+    expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(response.body).toMatchObject({
+      type: expect.any(String),
+      title: expect.any(String),
+      status: 401,
+      code: "unauthenticated",
+      detail: expect.any(String),
+    });
+  });
+
+  it("seeds fixed-container timestamps in Dubai local time", async () => {
+    const { Container } = await import("../src/modules/container/entities/container.entity");
+    const container = await dataSource!.getRepository(Container).findOneByOrFail({
+      containerNo: "ALNU1234567",
+    });
+    const seededTime = DateTime.fromJSDate(container.dischargedAt!).setZone(
+      "Asia/Dubai",
+    );
+    const expectedDate = DateTime.now()
+      .setZone("Asia/Dubai")
+      .minus({ days: 2 })
+      .toISODate();
+
+    expect(seededTime.toISODate()).toBe(expectedDate);
+    expect(seededTime.hour).toBe(10);
+    expect(seededTime.minute).toBe(0);
   });
 
   it("paginates a customer's scoped list without duplicates and filters active holds", async () => {
@@ -234,7 +289,13 @@ describe("YardPulse PostgreSQL API integration", () => {
       });
     expect(missingKey.status).toBe(400);
     expect(missingKey.headers["content-type"]).toContain("application/problem+json");
-    expect(missingKey.body.code).toBe("validation_failed");
+    expect(missingKey.body).toMatchObject({
+      type: expect.any(String),
+      title: expect.any(String),
+      status: 400,
+      code: "validation_failed",
+      detail: expect.any(String),
+    });
     expect(missingKey.body.errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ field: "Idempotency-Key" }),
@@ -252,6 +313,9 @@ describe("YardPulse PostgreSQL API integration", () => {
       });
     expect(offHour.status).toBe(400);
     expect(offHour.body.code).toBe("validation_failed");
+    expect(offHour.body.errors).toContainEqual(
+      expect.objectContaining({ field: "slot_start", message: expect.any(String) }),
+    );
   });
 
   it("serializes simultaneous bookings for the same container in different slots", async () => {

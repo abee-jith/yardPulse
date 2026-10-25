@@ -17,7 +17,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   if (!authorization) {
     return sendProblem(res, {
       type: "https://yardpulse.test/problems/unauthenticated",
-      title: "Authentication required",
+      title: "Unauthenticated",
       status: 401,
       code: "unauthenticated",
       detail: "A valid bearer token is required.",
@@ -28,7 +28,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   if (scheme !== "Bearer" || !token || extraParts.length > 0) {
     return sendProblem(res, {
       type: "https://yardpulse.test/problems/unauthenticated",
-      title: "Authentication required",
+      title: "Unauthenticated",
       status: 401,
       code: "unauthenticated",
       detail: "The Authorization header must contain a bearer token.",
@@ -45,7 +45,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   } catch {
     return sendProblem(res, {
       type: "https://yardpulse.test/problems/unauthenticated",
-      title: "Authentication required",
+      title: "Unauthenticated",
       status: 401,
       code: "unauthenticated",
       detail: "The bearer token is invalid or expired.",

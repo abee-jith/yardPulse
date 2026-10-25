@@ -13,8 +13,8 @@ import { env } from "../../config/env";
 import { entityNotFoundError, parseErrorRespose } from "../../utils/helper";
 
 const unAuthenticatedResponse = {
-  type: "https://yardpulse.test/problems/authentication",
-  title: "Authentication failed",
+  type: "https://yardpulse.test/problems/unauthenticated",
+  title: "Unauthenticated",
   status: 401,
   detail: "Invalid email or password.",
   code: "unauthenticated",

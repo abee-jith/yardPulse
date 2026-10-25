@@ -47,6 +47,12 @@ export async function createAppointment({
         status: 400,
         code: "validation_failed",
         detail: "slot_start must be a valid ISO 8601 timestamp.",
+        errors: [
+          {
+            field: "slot_start",
+            message: "Provide a valid ISO 8601 timestamp with a timezone.",
+          },
+        ],
       };
     }
 
@@ -66,6 +72,13 @@ export async function createAppointment({
         code: "validation_failed",
         detail:
           "slot_start must be a future, on-the-hour slot between 06:00 and 21:00 Dubai time.",
+        errors: [
+          {
+            field: "slot_start",
+            message:
+              "Choose a future whole-hour slot from 06:00 through 21:00 Dubai time.",
+          },
+        ],
       };
     }
 

@@ -30,6 +30,7 @@ declare global {
     status: number;
     detail: string;
     code: string;
+    errors?: Array<{ field: string; message: string }>;
   }
 
   type ServiceResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;

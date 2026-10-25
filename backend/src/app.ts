@@ -63,6 +63,12 @@ app.use(
             status: 400,
             code: "validation_failed",
             detail: "The request body could not be parsed.",
+            errors: [
+              {
+                field: "body",
+                message: "Provide a valid JSON request body.",
+              },
+            ],
           }
         : status === 413
           ? {
