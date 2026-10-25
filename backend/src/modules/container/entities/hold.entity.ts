@@ -4,7 +4,6 @@ import { HOLD_TYPE } from "../../../common/enum";
 import { Container } from "./container.entity";
 
 @Entity("holds")
-@Index("IDX_holds_container_released", ["container", "releasedAt"])
 export class Hold extends BaseEntity {
   @Column({
     name: "hold_type",

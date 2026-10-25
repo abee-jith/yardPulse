@@ -10,31 +10,37 @@ export const daysAgo = (days: number, hour: number): Date => {
 
 export function entityNotFoundError(entity: String) {
   return {
+    type: `https://yardpulse.test/problems/entity-not-found/${entity.toLowerCase()}`,
+    title: "Entity not found",
     status: 404,
-    message: `${entity} not found`,
-    data: null,
+    code: "entity_not_found",
+    detail: `${entity} not found`,
   };
 }
 
-export function parseErrorRespose<T extends boolean = false>({
+export function parseErrorRespose({
   error,
   message,
-  count = false as T,
 }: {
   error: unknown;
   message: string;
-  count?: T;
-}): T extends true ? ServiceResponseWithCount : ServiceResponse {
+}): ServiceResponse {
   const createResponse = (
+    type: string,
+    title: string,
     status: number,
-    responseMessage: string,
-  ): ServiceResponse | ServiceResponseWithCount => ({
+    code: string,
+    detail: string,
+  ): ServiceResponse => ({
+    type,
+    title,
     status,
-    message: responseMessage,
-    data: null,
-    ...(count ? { count: null } : {}),
+    code,
+    detail,
   });
 
+  // Handle database unique constraint violation errors
+  // Unused for now, but can be used in future for more specific error handling
   if (error instanceof QueryFailedError) {
     const driverError = error.driverError as DriveError;
 
@@ -57,15 +63,22 @@ export function parseErrorRespose<T extends boolean = false>({
           .replace(/\b\w/g, (char) => char.toUpperCase());
 
         return createResponse(
+          `https://yardpulse.test/problems/duplicate-entry/${entity.toLowerCase()}`,
+          "Duplicate entry",
           409,
+          "duplicate_entry",
           `${entity} with ${formattedField.toLowerCase()} already exists`,
-        ) as T extends true ? ServiceResponseWithCount : ServiceResponse;
+        );
       }
     }
   }
 
   env.nodeEnv === "development" && console.error(message, error);
-  return createResponse(500, "Internal server error") as T extends true
-    ? ServiceResponseWithCount
-    : ServiceResponse;
+  return createResponse(
+    "https://yardpulse.test/problems/server-errors",
+    "Internal server error",
+    500,
+    "internal_error",
+    "An unexpected error occurred. Please try again later.",
+  );
 }

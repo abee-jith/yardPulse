@@ -1,7 +1,8 @@
 import { Entity, Column, Index, OneToMany } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
 import { LINE_CODE, USER_ROLE } from "../../../common/enum";
-import { Appointment } from "../../appointment/appointment.entity";
+import { Appointment } from "../../appointment/entities/appointment.entity";
+import { IdempotencyRecord } from "../../appointment/entities/idempotency-record.entity";
 
 @Entity("user")
 @Index("UQ_email_active", ["email"], {
@@ -46,4 +47,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Appointment, (appointment) => appointment.user)
   appointments!: Appointment[];
+
+  @OneToMany(() => IdempotencyRecord, (record) => record.user)
+  idempotencyRecords!: IdempotencyRecord[];
 }

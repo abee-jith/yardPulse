@@ -18,7 +18,7 @@ import { BaseEntity } from "../../../common/database/base.entity";
 import { VesselVisit } from "./vessel-visit.entity";
 import { Hold } from "./hold.entity";
 import { ContainerEvent } from "./event.entity";
-import { Appointment } from "../../appointment/appointment.entity";
+import { Appointment } from "../../appointment/entities/appointment.entity";
 
 @Entity("container")
 @Index("UQ_container_no", ["containerNo"], {
