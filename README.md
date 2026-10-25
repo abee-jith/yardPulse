@@ -155,3 +155,94 @@ cd frontend
 npm run typecheck
 npm run build
 ```
+
+## Assessment handoff
+
+### 1. Run, test, and log in
+
+Follow the environment setup and backend-first startup steps above. Start
+PostgreSQL, configure `backend/.env` and `frontend/.env.local`, then install and
+run the backend before starting the frontend. Run `npm run seed:dev` from
+`backend/` to load the local accounts and sample containers. Open
+`http://localhost:3000` and sign in with one of the local accounts in the
+[seed accounts table](#local-seed-accounts).
+
+Run the backend checks against PostgreSQL from `backend/`:
+
+```sh
+npm run build
+npm run typecheck:test
+npm run test:integration
+```
+
+The integration suite creates and drops a separate `yardpulse_test_*` schema.
+Keep `TEST_DB_SCHEMA` separate from any schema containing data you need. Run
+the frontend checks from `frontend/`:
+
+```sh
+npm run typecheck
+npm run build
+```
+
+### 2. Booking idempotency and slot capacity
+
+The frontend creates one UUID idempotency key when the user submits a booking
+attempt and blocks rapid duplicate clicks. The backend scopes keys to the
+authenticated user, hashes the request body, and stores the response with the
+key in the same database transaction as the booking; replaying the same key
+and body returns the stored response, while reusing the key with a different
+body returns `422`. The frontend does not retain a key after a failed request,
+so a separate manual retry gets a new key; the backend's one-active-appointment
+rule still prevents a second active booking for that container.
+
+A retry of the same request must reuse its original key to receive the exact
+original response. The no-overbooking guarantee depends on all appointment
+writers using the same transaction and PostgreSQL database; direct SQL,
+another service that skips the slot lock, or splitting booking writes across
+independent databases could bypass it.
+
+To prevent overbooking, the backend takes a PostgreSQL transaction-level
+advisory lock for the requested slot, counts existing booked appointments, and
+inserts only if capacity remains. The integration tests cover replay and ten
+concurrent bookings competing for one remaining seat.
+
+### 3. Assistant and customer data scope
+
+The current assistant panel is only a local help-text placeholder; it does not
+query containers or answer live-data questions, so it currently has no
+assistant data-access path to scope. For a live assistant, requests must use
+the signed-in user's identity from the verified server-side authentication
+context and retrieve data through the same line-scoped backend services used
+by search and detail. The assistant must never rely on a line code supplied in
+the prompt, and should only receive the records that user is authorized to
+see.
+
+### 4. Logout, refresh, and rate limiting
+
+Logout should revoke the stored refresh token and clear the client's
+credentials; refresh should validate and rotate a hashed, single-use refresh
+token, revoke the previous token, and issue a new short-lived access token.
+The backend already applies a global per-client rate limit of 100 requests
+per 15 minutes, but it should be supplemented with stricter login and refresh
+limits and a shared store such as Redis when running multiple server
+instances.
+
+### 5. Cuts and next steps
+
+The live AI assistant and policy-aware answers were cut; the existing panel
+does not use live container data or policy documents. With another day, I
+would implement a server-side assistant that uses authenticated, line-scoped
+queries and policy retrieval, then add tests for cross-line prompts, tool
+results, and refusal behavior. I would also add logout and refresh endpoints
+with token rotation and lifecycle tests.
+
+### 6. Time and AI usage
+
+**Time spent:** approximately 7 hours total, including understanding the
+requirements, implementation, testing, and documentation.
+
+**AI usage:** AI assistance was used during development to help understand the
+requirements, implement and troubleshoot parts of the application, and draft
+documentation. The resulting code and documentation were reviewed and
+validated against the repository and its available checks; AI output was not
+treated as a substitute for testing.
