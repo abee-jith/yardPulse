@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LINE_CODE } from "../../common/enum";
+import { LINE_CODE, USER_ROLE } from "../../common/enum";
 
 export const loginSchema = z.object({
   email: z.email(),
@@ -19,8 +19,19 @@ export const refreshTokenSchema = z.object({
 export const userSchema = z.object({
   id: z.number().int(),
   fullName: z.string().min(2).max(100),
-  role: z.string().min(2).max(100),
-  lineCode: z.string().nullable(),
+  role: z.enum(USER_ROLE),
+  lineCode: z.enum(LINE_CODE).nullable(),
+}).superRefine((user, context) => {
+  if (
+    (user.role === USER_ROLE.OPERATOR && user.lineCode !== null) ||
+    (user.role === USER_ROLE.CUSTOMER && user.lineCode === null)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["lineCode"],
+      message: "Operators must not have a line code; customers must have one.",
+    });
+  }
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

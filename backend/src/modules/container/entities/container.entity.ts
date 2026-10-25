@@ -1,6 +1,7 @@
 import {
   Entity,
   Column,
+  Check,
   Index,
   ManyToOne,
   JoinColumn,
@@ -18,9 +19,13 @@ import { BaseEntity } from "../../../common/database/base.entity";
 import { VesselVisit } from "./vessel-visit.entity";
 import { Hold } from "./hold.entity";
 import { ContainerEvent } from "./event.entity";
-import { Appointment } from "../../appointment/appointment.entity";
+import { Appointment } from "../../appointment/entities/appointment.entity";
 
 @Entity("container")
+@Check(
+  "CHK_container_no_format",
+  `"container_no" ~ '^[A-Z]{4}[0-9]{7}$'`,
+)
 @Index("UQ_container_no", ["containerNo"], {
   unique: true,
   where: '"deleted_at" IS NULL',
@@ -54,7 +59,7 @@ export class Container extends BaseEntity {
   @Column({
     name: "size_ft",
     type: "enum",
-    enum: CONTAINER_SIZE_FT,
+    enum: [20, 40, 45],
     nullable: false,
   })
   sizeFt!: CONTAINER_SIZE_FT;

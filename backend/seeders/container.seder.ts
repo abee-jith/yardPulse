@@ -96,7 +96,12 @@ export async function seedContainers(dataSource: DataSource): Promise<void> {
       ...(existing ?? {}),
       containerNo: seed.containerNo,
       lineCode: seed.lineCode,
-      isoType: seed.sizeFt === 40 ? "45G1" : "22G1",
+      isoType:
+        seed.sizeFt === 20
+          ? "22G1"
+          : seed.sizeFt === 40
+            ? "42G1"
+            : "45G1",
       sizeFt: seed.sizeFt as CONTAINER_SIZE_FT,
       freightKind: FREIGHT_KIND.FULL,
       status: seed.status as CONTAINER_STATUS,

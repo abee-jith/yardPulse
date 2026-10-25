@@ -13,9 +13,11 @@ import { env } from "../../config/env";
 import { entityNotFoundError, parseErrorRespose } from "../../utils/helper";
 
 const unAuthenticatedResponse = {
+  type: "https://yardpulse.test/problems/unauthenticated",
+  title: "Unauthenticated",
   status: 401,
-  message: "Invalid email or password",
-  data: null,
+  detail: "Invalid email or password.",
+  code: "unauthenticated",
 };
 
 function createAccessToken(user: User) {
@@ -75,7 +77,7 @@ export async function login({
 
     return {
       status: 200,
-      message: "Login successful",
+      detail: "Login successful",
       data: {
         id: user.id,
         fullName: user.fullName,
@@ -99,7 +101,7 @@ export async function profile({
 
     return {
       status: 200,
-      message: "Profile retrieved successfully",
+      detail: "Profile retrieved successfully",
       data: {
         id: userRecord.id,
         fullName: userRecord.fullName,

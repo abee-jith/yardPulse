@@ -1,26 +1,30 @@
 import { Entity, Column, ManyToOne, JoinColumn, Index } from "typeorm";
-import { APPOINTMENT_STATUS } from "../../common/enum";
-import { Container } from "../container/entities/container.entity";
-import { User } from "../user/entities/user.entity";
-import { BaseEntity } from "../../common/database/base.entity";
+import { APPOINTMENT_STATUS } from "../../../common/enum";
+import { Container } from "../../container/entities/container.entity";
+import { User } from "../../user/entities/user.entity";
+import { BaseEntity } from "../../../common/database/base.entity";
 
 @Entity("appointments")
 @Index("IDX_appointments_slot_status", ["slotStart", "status"])
 @Index("IDX_appointments_container_status", ["container", "status"])
+@Index("UQ_appointments_one_booked_per_container", ["containerId"], {
+  unique: true,
+  where: '"status" = \'BOOKED\' AND "deleted_at" IS NULL',
+})
 export class Appointment extends BaseEntity {
   @Column({
     name: "container_id",
-    type: "uuid",
+    type: "integer",
     nullable: false,
   })
-  containerId!: string;
+  containerId!: number;
 
   @Column({
     name: "user_id",
-    type: "uuid",
+    type: "integer",
     nullable: false,
   })
-  userId!: string;
+  userId!: number;
 
   @Column({
     name: "slot_start",

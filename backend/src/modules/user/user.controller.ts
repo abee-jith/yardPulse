@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { login, profile } from "./user.service";
+import { sendServiceResponse } from "../../utils/problem";
 
 export function getDeviceName(userAgent?: string): string {
   return !userAgent
@@ -20,7 +21,7 @@ export async function loginController(req: Request, res: Response) {
     },
   });
 
-  return res.status(result.status).json(result);
+  return sendServiceResponse(res, result);
 }
 
 export async function profileController(req: Request, res: Response) {
@@ -28,5 +29,5 @@ export async function profileController(req: Request, res: Response) {
     user: req.user!,
   });
 
-  return res.status(result.status).json(result);
+  return sendServiceResponse(res, result);
 }

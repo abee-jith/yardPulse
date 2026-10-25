@@ -1,6 +1,6 @@
 enum USER_ROLE {
-  CUSTOMER = "Customer",
-  OPERATOR = "Operator",
+  CUSTOMER = "customer",
+  OPERATOR = "operator",
 }
 
 enum LINE_CODE {
@@ -16,37 +16,37 @@ enum CONTAINER_SIZE_FT {
 }
 
 enum FREIGHT_KIND {
-  FULL = "Full",
-  EMPTY = "Empty",
+  FULL = "FULL",
+  EMPTY = "EMPTY",
 }
 
 enum CONTAINER_STATUS {
-  ON_VESSEL = "On vessel",
-  IN_YARD = "In yard",
-  DEPARTED = "Departed",
+  ON_VESSEL = "ON_VESSEL",
+  IN_YARD = "IN_YARD",
+  DEPARTED = "DEPARTED",
 }
 
 enum HOLD_TYPE {
-  CUSTOMS = "Customs",
-  LINE = "Line",
-  INSPECTION = "Inspection",
-  TERMINAL = "Terminal",
+  CUSTOMS = "CUSTOMS",
+  LINE = "LINE",
+  INSPECTION = "INSPECTION",
+  TERMINAL = "TERMINAL",
 }
 
 enum CONTAINER_EVENT_TYPE {
-  DISCHARGED = "Discharged",
-  YARD_MOVE = "Yard move",
-  HOLD_PLACED = "Hold placed",
-  HOLD_RELEASED = "Hold released",
-  APPOINTMENT_BOOKED = "Appointment booked",
-  APPOINTMENT_CANCELLED = "Appointment cancelled",
-  GATE_OUT = "Gate out",
+  DISCHARGED = "DISCHARGED",
+  YARD_MOVE = "YARD_MOVE",
+  HOLD_PLACED = "HOLD_PLACED",
+  HOLD_RELEASED = "HOLD_RELEASED",
+  APPOINTMENT_BOOKED = "APPOINTMENT_BOOKED",
+  APPOINTMENT_CANCELLED = "APPOINTMENT_CANCELLED",
+  GATE_OUT = "GATE_OUT",
 }
 
 enum APPOINTMENT_STATUS {
-  BOOKED = "Booked",
-  CANCELLED = "Cancelled",
-  COMPLETED = "Completed",
+  BOOKED = "BOOKED",
+  CANCELLED = "CANCELLED",
+  COMPLETED = "COMPLETED",
 }
 
 export {

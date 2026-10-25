@@ -17,18 +17,23 @@ declare global {
     next_cursor: string | null;
   }
 
-  interface ServiceResponse<T = unknown> {
+  interface SuccessResponse<T = unknown> {
     status: number;
-    message: string;
-    data: T | null;
-  }
-
-  interface ServiceResponseWithCount<T = unknown> {
-    status: number;
-    message: string;
+    detail: string;
     data: T | null;
     page?: Pagination;
   }
+
+  interface ErrorResponse {
+    type: string;
+    title: string;
+    status: number;
+    detail: string;
+    code: string;
+    errors?: Array<{ field: string; message: string }>;
+  }
+
+  type ServiceResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
 
   interface DriveError {
     code?: string;

@@ -1,71 +1,54 @@
-import { QueryFailedError } from "typeorm";
 import { env } from "../config/env";
+import { DateTime } from "luxon";
+
+export const TERMINAL_TIME_ZONE = "Asia/Dubai";
 
 export const daysAgo = (days: number, hour: number): Date => {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - days);
-  date.setUTCHours(hour, 0, 0, 0);
-  return date;
+  return DateTime.now()
+    .setZone(TERMINAL_TIME_ZONE)
+    .minus({ days })
+    .set({ hour, minute: 0, second: 0, millisecond: 0 })
+    .toUTC()
+    .toJSDate();
 };
 
-export function entityNotFoundError(entity: String) {
+export function entityNotFoundError(entity: string) {
   return {
+    type: "https://yardpulse.test/problems/not-found",
+    title: `${entity} not found`,
     status: 404,
-    message: `${entity} not found`,
-    data: null,
+    code: "not_found",
+    detail: `The requested ${entity.toLowerCase()} does not exist or is not available.`,
   };
 }
 
-export function parseErrorRespose<T extends boolean = false>({
+export function parseErrorRespose({
   error,
   message,
-  count = false as T,
 }: {
   error: unknown;
   message: string;
-  count?: T;
-}): T extends true ? ServiceResponseWithCount : ServiceResponse {
+}): ServiceResponse {
   const createResponse = (
+    type: string,
+    title: string,
     status: number,
-    responseMessage: string,
-  ): ServiceResponse | ServiceResponseWithCount => ({
+    code: string,
+    detail: string,
+  ): ServiceResponse => ({
+    type,
+    title,
     status,
-    message: responseMessage,
-    data: null,
-    ...(count ? { count: null } : {}),
+    code,
+    detail,
   });
 
-  if (error instanceof QueryFailedError) {
-    const driverError = error.driverError as DriveError;
-
-    if (driverError.code === "23505" && driverError.detail) {
-      const match = driverError.detail.match(
-        /Key \(([^)]+)\)=\(([^)]+)\) already exists\./,
-      );
-
-      if (match) {
-        const [, field] = match;
-
-        const entity = driverError.table
-          ? driverError.table
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (char) => char.toUpperCase())
-          : "Record";
-
-        const formattedField = field
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase());
-
-        return createResponse(
-          409,
-          `${entity} with ${formattedField.toLowerCase()} already exists`,
-        ) as T extends true ? ServiceResponseWithCount : ServiceResponse;
-      }
-    }
-  }
-
-  env.nodeEnv === "development" && console.error(message, error);
-  return createResponse(500, "Internal server error") as T extends true
-    ? ServiceResponseWithCount
-    : ServiceResponse;
+  if (env.nodeEnv === "development") console.error(message, error);
+  return createResponse(
+    "https://yardpulse.test/problems/internal-error",
+    "Internal server error",
+    500,
+    "internal_error",
+    "An unexpected error occurred. Please try again later.",
+  );
 }

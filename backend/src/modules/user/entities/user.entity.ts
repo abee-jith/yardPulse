@@ -1,9 +1,14 @@
-import { Entity, Column, Index, OneToMany } from "typeorm";
+import { Entity, Column, Index, OneToMany, Check } from "typeorm";
 import { BaseEntity } from "../../../common/database/base.entity";
 import { LINE_CODE, USER_ROLE } from "../../../common/enum";
-import { Appointment } from "../../appointment/appointment.entity";
+import { Appointment } from "../../appointment/entities/appointment.entity";
+import { IdempotencyRecord } from "../../appointment/entities/idempotency-record.entity";
 
 @Entity("user")
+@Check(
+  "CHK_user_role_line_code",
+  '("role" = \'operator\' AND "line_code" IS NULL) OR ("role" = \'customer\' AND "line_code" IS NOT NULL)',
+)
 @Index("UQ_email_active", ["email"], {
   unique: true,
   where: '"deleted_at" IS NULL',
@@ -46,4 +51,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Appointment, (appointment) => appointment.user)
   appointments!: Appointment[];
+
+  @OneToMany(() => IdempotencyRecord, (record) => record.user)
+  idempotencyRecords!: IdempotencyRecord[];
 }
