@@ -9,7 +9,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
-  InfiniteData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -18,7 +17,7 @@ import {
 import { ApiError, apiRequest, getPayloadData, TOKEN_KEY } from "@/lib/api";
 
 type ContainerSummary = {
-  id: string;
+  id: number;
   container_no: string;
   status: string;
   yard_location: string | null;
@@ -43,21 +42,25 @@ type ContainerEvent = {
   details?: unknown;
 };
 type Appointment = {
-  id: string;
+  id: number;
   slotStart?: string;
   slot_start?: string;
   truckPlate?: string;
   truck_plate?: string;
   status: string;
 };
-type ContainerPage = {
-  items: ContainerSummary[];
-  nextCursor: string | null;
-};
 type ChatMessage = { role: "assistant" | "user"; text: string };
 
-const STATUSES = ["On vessel", "In yard", "Departed"];
+const STATUSES = [
+  { value: "ON_VESSEL", label: "On vessel" },
+  { value: "IN_YARD", label: "In yard" },
+  { value: "DEPARTED", label: "Departed" },
+];
 const DUBAI_TIME_ZONE = "Asia/Dubai";
+
+function displayStatus(status: string) {
+  return STATUSES.find((option) => option.value === status)?.label ?? status;
+}
 
 function messageFrom(error: unknown) {
   return error instanceof Error ? error.message : "Unable to load data.";
@@ -154,9 +157,7 @@ export default function DashboardPage() {
       const items = getPayloadData(response) ?? [];
       return {
         items,
-        nextCursor:
-          (response as typeof response & { page?: { next_cursor?: string | null } })
-            .page?.next_cursor ?? null,
+        nextCursor: response.page?.next_cursor ?? null,
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -178,10 +179,10 @@ export default function DashboardPage() {
   const container = selectedQuery.data;
   const activeHolds = useMemo(() => getActiveHolds(container), [container]);
   const activeAppointment = container?.appointments?.find(
-    (appointment) => appointment.status === "Booked",
+    (appointment) => appointment.status === "BOOKED",
   );
   const eligibilityReason =
-    container && container.status !== "In yard"
+    container && container.status !== "IN_YARD"
       ? "Only containers with status In yard can be booked."
       : activeHolds.length > 0
         ? "This container has an active hold."
@@ -243,28 +244,31 @@ export default function DashboardPage() {
     },
   });
 
-  async function submitBooking(event: FormEvent<HTMLFormElement>) {
+  function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!container || !canBook || bookingInFlight.current) return;
     bookingInFlight.current = true;
     setBookingError("");
     setBookingSuccess("");
-    try {
-      const idempotencyKey = crypto.randomUUID();
-      await bookingMutation.mutateAsync({
+    const idempotencyKey = crypto.randomUUID();
+    bookingMutation.mutate(
+      {
         key: idempotencyKey,
         containerNo: container.container_no,
         slotStart: `${date}T${hour}:00:00+04:00`,
         truckPlate: plate.trim(),
-      });
-      setDate("");
-      setHour("");
-      setPlate("");
-    } catch {
-      // The mutation error is shown from its onError handler.
-    } finally {
-      bookingInFlight.current = false;
-    }
+      },
+      {
+        onSuccess: () => {
+          setDate("");
+          setHour("");
+          setPlate("");
+        },
+        onSettled: () => {
+          bookingInFlight.current = false;
+        },
+      },
+    );
   }
 
   function submitChat(event: FormEvent<HTMLFormElement>) {
@@ -342,8 +346,10 @@ export default function DashboardPage() {
                   onChange={(event) => setStatus(event.target.value)}
                 >
                   <option value="">All statuses</option>
-                  {STATUSES.map((value) => (
-                    <option key={value}>{value}</option>
+                  {STATUSES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -399,7 +405,7 @@ export default function DashboardPage() {
                         </span>
                       </span>
                       <span className="rounded-full bg-[#edf2ef] px-3 py-1 text-xs font-medium">
-                        {item.status}
+                        {displayStatus(item.status)}
                       </span>
                     </button>
                   </li>
@@ -448,7 +454,7 @@ export default function DashboardPage() {
                       <h2 className="mt-1 text-2xl font-bold">{container.container_no}</h2>
                     </div>
                     <span className="rounded-full bg-[#e8f4ee] px-3 py-1.5 text-sm font-semibold text-[var(--green-dark)]">
-                      {container.status}
+                      {displayStatus(container.status)}
                     </span>
                   </div>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -523,6 +529,9 @@ export default function DashboardPage() {
                       <input
                         className="mt-2 w-full rounded-xl border border-[var(--line)] px-3 py-3"
                         type="date"
+                        min={new Intl.DateTimeFormat("en-CA", {
+                          timeZone: DUBAI_TIME_ZONE,
+                        }).format(new Date())}
                         value={date}
                         onChange={(event) => setDate(event.target.value)}
                         required

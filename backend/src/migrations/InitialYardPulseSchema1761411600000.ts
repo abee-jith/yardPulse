@@ -11,6 +11,10 @@ function getConfiguredSchema(queryRunner: QueryRunner): string {
     : "public";
 }
 
+function quoteLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
 export class InitialYardPulseSchema1761411600000
   implements MigrationInterface
 {
@@ -22,6 +26,16 @@ export class InitialYardPulseSchema1761411600000
       `${quoteIdentifier(schema)}.${quoteIdentifier(name)}`;
 
     await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schema)}`);
+
+    const existingUserTable = await queryRunner.query(
+      "SELECT to_regclass($1) AS relation",
+      [`${quoteIdentifier(schema)}.${quoteIdentifier("user")}`],
+    );
+
+    if (existingUserTable[0]?.relation) {
+      await this.upgradeSynchronizedSchema(queryRunner, schema);
+      return;
+    }
 
     const enumTypes: Array<[string, string[]]> = [
       ["user_role_enum", ["customer", "operator"]],
@@ -201,6 +215,169 @@ export class InitialYardPulseSchema1761411600000
         CONSTRAINT "uq_idempotency_user_key" UNIQUE (user_id, idempotency_key)
       )
     `);
+  }
+
+  private async upgradeSynchronizedSchema(
+    queryRunner: QueryRunner,
+    schema: string,
+  ): Promise<void> {
+    const tables = [
+      "user",
+      "refresh_token",
+      "visits",
+      "container",
+      "holds",
+      "events",
+      "appointments",
+      "idempotency_records",
+    ];
+    const existingTables = await queryRunner.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE'",
+      [schema],
+    );
+    const existingTableNames = new Set(
+      existingTables.map((row: { table_name: string }) => row.table_name),
+    );
+    const missingTables = tables.filter((table) => !existingTableNames.has(table));
+
+    if (missingTables.length > 0) {
+      throw new Error(
+        `The existing YardPulse schema is incomplete. Missing tables: ${missingTables.join(", ")}. Back up the database and migrate it before starting the server.`,
+      );
+    }
+
+    const enumMigrations: Array<{
+      name: string;
+      values: Array<[string, string]>;
+    }> = [
+      {
+        name: "user_role_enum",
+        values: [
+          ["Customer", "customer"],
+          ["Operator", "operator"],
+        ],
+      },
+      {
+        name: "container_freight_kind_enum",
+        values: [
+          ["Full", "FULL"],
+          ["Empty", "EMPTY"],
+        ],
+      },
+      {
+        name: "container_status_enum",
+        values: [
+          ["On vessel", "ON_VESSEL"],
+          ["In yard", "IN_YARD"],
+          ["Departed", "DEPARTED"],
+        ],
+      },
+      {
+        name: "holds_hold_type_enum",
+        values: [
+          ["Customs", "CUSTOMS"],
+          ["Line", "LINE"],
+          ["Inspection", "INSPECTION"],
+          ["Terminal", "TERMINAL"],
+        ],
+      },
+      {
+        name: "events_event_type_enum",
+        values: [
+          ["Discharged", "DISCHARGED"],
+          ["Yard move", "YARD_MOVE"],
+          ["Hold placed", "HOLD_PLACED"],
+          ["Hold released", "HOLD_RELEASED"],
+          ["Appointment booked", "APPOINTMENT_BOOKED"],
+          ["Appointment cancelled", "APPOINTMENT_CANCELLED"],
+          ["Gate out", "GATE_OUT"],
+        ],
+      },
+      {
+        name: "appointments_status_enum",
+        values: [
+          ["Booked", "BOOKED"],
+          ["Cancelled", "CANCELLED"],
+          ["Completed", "COMPLETED"],
+        ],
+      },
+    ];
+
+    for (const enumMigration of enumMigrations) {
+      const enumType = await queryRunner.query(
+        `SELECT EXISTS (
+          SELECT 1
+          FROM pg_type AS type
+          INNER JOIN pg_namespace AS namespace ON namespace.oid = type.typnamespace
+          WHERE namespace.nspname = $1 AND type.typname = $2
+        ) AS exists`,
+        [schema, enumMigration.name],
+      );
+      if (!enumType[0]?.exists) {
+        throw new Error(
+          `The existing YardPulse schema is missing enum ${enumMigration.name}; no data was changed.`,
+        );
+      }
+
+      for (const [oldValue, newValue] of enumMigration.values) {
+        const labels = await queryRunner.query(
+          `SELECT enumlabel FROM pg_enum
+           INNER JOIN pg_type ON pg_type.oid = pg_enum.enumtypid
+           INNER JOIN pg_namespace ON pg_namespace.oid = pg_type.typnamespace
+           WHERE pg_namespace.nspname = $1 AND pg_type.typname = $2
+             AND enumlabel IN ($3, $4)`,
+          [schema, enumMigration.name, oldValue, newValue],
+        );
+        const currentLabels = new Set(
+          labels.map((row: { enumlabel: string }) => row.enumlabel),
+        );
+
+        if (currentLabels.has(oldValue) && !currentLabels.has(newValue)) {
+          await queryRunner.query(
+            `ALTER TYPE ${quoteIdentifier(schema)}.${quoteIdentifier(enumMigration.name)}
+             RENAME VALUE ${quoteLiteral(oldValue)} TO ${quoteLiteral(newValue)}`,
+          );
+        } else if (!currentLabels.has(newValue)) {
+          throw new Error(
+            `The existing YardPulse schema has an unsupported value in ${enumMigration.name}; expected ${oldValue} or ${newValue}.`,
+          );
+        }
+      }
+    }
+
+    const qualified = (name: string) =>
+      `${quoteIdentifier(schema)}.${quoteIdentifier(name)}`;
+    await queryRunner.query(`
+      DO $$ BEGIN
+        ALTER TABLE ${qualified("user")}
+        ADD CONSTRAINT "CHK_user_role_line_code" CHECK (
+          ("role" = 'operator' AND "line_code" IS NULL) OR
+          ("role" = 'customer' AND "line_code" IS NOT NULL)
+        );
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    await queryRunner.query(`
+      DO $$ BEGIN
+        ALTER TABLE ${qualified("container")}
+        ADD CONSTRAINT "CHK_container_no_format"
+        CHECK ("container_no" ~ '^[A-Z]{4}[0-9]{7}$');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_appointments_one_booked_per_container"
+       ON ${qualified("appointments")} (container_id)
+       WHERE status = 'BOOKED' AND deleted_at IS NULL`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_appointments_slot_status"
+       ON ${qualified("appointments")} (slot_start, status)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS "IDX_appointments_container_status"
+       ON ${qualified("appointments")} (container_id, status)`,
+    );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

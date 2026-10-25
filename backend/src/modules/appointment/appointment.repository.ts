@@ -76,8 +76,6 @@ export async function createAppointmentTransaction({
         requestHash,
       });
 
-    // Cache business responses as well as successful responses.
-    // Returning normally commits the idempotency record.
     const finish = async (status: number, body: Record<string, unknown>) => {
       record.requestHash = requestHash;
       record.responseStatus = status;
@@ -101,7 +99,6 @@ export async function createAppointmentTransaction({
       .setLock("pessimistic_write")
       .getOne();
 
-    // A different line's container must not be disclosed.
     if (!container) {
       return finish(404, {
         type: "https://yardpulse.test/problems/not-found",

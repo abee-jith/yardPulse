@@ -5,6 +5,7 @@ export const TOKEN_KEY = "yardpulse.accessToken";
 type ApiPayload<T> = {
   data?: T;
   body?: { data?: T; detail?: string; title?: string };
+  page?: { limit: number; next_cursor: string | null };
   detail?: string;
   title?: string;
   message?: string;
@@ -27,7 +28,7 @@ export async function apiRequest<T>(
   const token =
     typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
   const headers = new Headers(options.headers);
-  headers.set("Accept", "application/json");
+  headers.set("Accept", "application/json, application/problem+json");
 
   if (options.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
