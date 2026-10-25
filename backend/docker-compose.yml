@@ -16,21 +16,5 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: yardpulse-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@yardpulse.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-yardpulse-local-only}
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      postgres:
-        condition: service_healthy
-
 volumes:
   postgres_data:
-  pgadmin_data:

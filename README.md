@@ -45,10 +45,10 @@ The `.env.example` files contain templates/defaults, not the private values
 from the submission environment. If the submission provides a different port
 or origin, make both environment files agree.
 
-## Start the database and pgAdmin
+## Start the database and connect with pgAdmin
 
 Create `backend/.env` as described above. From the `backend/` directory, start
-PostgreSQL and pgAdmin with Docker Compose:
+PostgreSQL with Docker Compose:
 
 ```sh
 cd backend
@@ -56,19 +56,13 @@ docker compose up -d
 docker compose ps
 ```
 
-Open pgAdmin at and sign in with
-`PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` from `backend/.env`. If
-you have not set those optional variables, the local Compose defaults are
-`admin@yardpulse.local` and `yardpulse-local-only`; change them for your own
-development environment. In pgAdmin, register a server with host
-`postgres`, port `5432`, and the database name, username, and password from
-`backend/.env`. The hostname `postgres` works from pgAdmin inside Docker;
-the backend running directly on your computer connects using `DB_HOST` (usually
-`localhost`) and the published `DB_PORT`.
+Open pgAdmin installed on your computer and register a server using host
+`localhost`, the published `DB_PORT` from `backend/.env`, and the `DB_NAME`,
+`DB_USER`, and `DB_PASSWORD` values from that file.
 
-To stop the services without deleting the database or pgAdmin data, run
+To stop the PostgreSQL container while preserving its data, run
 `docker compose down` from `backend/`. Do not add `-v` unless you intend to
-delete the persisted database and pgAdmin data.
+delete the persisted database data.
 
 ## Install and run
 
