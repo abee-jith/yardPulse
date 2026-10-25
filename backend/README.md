@@ -23,6 +23,28 @@ Set the database credentials, `JWT_SECRET`, and `CORS_ORIGIN` in `.env`. Point
 `DB_SCHEMA` must be an existing or creatable PostgreSQL schema name; the
 application creates it before applying migrations.
 
+### Start PostgreSQL and connect with local pgAdmin
+
+After configuring `.env`, start the database from `backend/`:
+
+```sh
+docker compose up -d
+docker compose ps
+```
+
+Open pgAdmin installed on your computer and register a server using host
+`localhost`, the published `DB_PORT` from `.env`, and the `DB_NAME`, `DB_USER`,
+and `DB_PASSWORD` values from that file.
+
+Stop the PostgreSQL container while preserving its data with:
+
+```sh
+docker compose down
+```
+
+Do not use `docker compose down -v` unless you intend to delete the persisted
+database data.
+
 Start the API and seed its deterministic data:
 
 ```sh

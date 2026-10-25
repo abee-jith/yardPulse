@@ -30,7 +30,7 @@ function createAccessToken(user: User) {
     },
     env.jwt.secret,
     {
-      expiresIn: env.jwt.expiresIn,
+      expiresIn: env.jwt.expiresIn as jwt.SignOptions["expiresIn"],
     },
   );
 }

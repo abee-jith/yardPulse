@@ -7,9 +7,12 @@ import type { DataSource } from "typeorm";
 import supertest from "supertest";
 import { APPOINTMENT_STATUS, CONTAINER_STATUS } from "../src/common/enum";
 
-const testSchema = process.env.TEST_DB_SCHEMA ?? `yardpulse_test_${process.pid}`;
+const testSchema =
+  process.env.TEST_DB_SCHEMA ?? `yardpulse_test_${process.pid}`;
 if (!/^yardpulse_test_[a-z0-9_]+$/.test(testSchema)) {
-  throw new Error("TEST_DB_SCHEMA must start with yardpulse_test_ and use lowercase letters, digits, and underscores.");
+  throw new Error(
+    "TEST_DB_SCHEMA must start with yardpulse_test_ and use lowercase letters, digits, and underscores.",
+  );
 }
 
 process.env.DB_SCHEMA = testSchema;
@@ -46,21 +49,22 @@ async function login(
 
 describe("YardPulse PostgreSQL API integration", () => {
   beforeAll(async () => {
-    const [database, application, entities, initialMigration] = await Promise.all([
-      import("../src/config/database"),
-      import("../src/app"),
-      Promise.all([
-        import("../src/modules/user/entities/user.entity"),
-        import("../src/modules/user/entities/refreshtoken.entity"),
-        import("../src/modules/container/entities/container.entity"),
-        import("../src/modules/container/entities/vessel-visit.entity"),
-        import("../src/modules/container/entities/hold.entity"),
-        import("../src/modules/container/entities/event.entity"),
-        import("../src/modules/appointment/entities/appointment.entity"),
-        import("../src/modules/appointment/entities/idempotency-record.entity"),
-      ]),
-      import("../src/migrations/InitialYardPulseSchema1761411600000"),
-    ]);
+    const [database, application, entities, initialMigration] =
+      await Promise.all([
+        import("../src/config/database"),
+        import("../src/app"),
+        Promise.all([
+          import("../src/modules/user/entities/user.entity"),
+          import("../src/modules/user/entities/refreshtoken.entity"),
+          import("../src/modules/container/entities/container.entity"),
+          import("../src/modules/container/entities/vessel-visit.entity"),
+          import("../src/modules/container/entities/hold.entity"),
+          import("../src/modules/container/entities/event.entity"),
+          import("../src/modules/appointment/entities/appointment.entity"),
+          import("../src/modules/appointment/entities/idempotency-record.entity"),
+        ]),
+        import("../src/migrations/InitialYardPulseSchema1761411600000"),
+      ]);
     request = supertest;
     app = application.default;
     dataSource = database.AppDataSource;
@@ -96,7 +100,9 @@ describe("YardPulse PostgreSQL API integration", () => {
   afterAll(async () => {
     if (dataSource?.isInitialized) {
       const escapedSchema = testSchema.replace(/"/g, '""');
-      await dataSource.query(`DROP SCHEMA IF EXISTS "${escapedSchema}" CASCADE`);
+      await dataSource.query(
+        `DROP SCHEMA IF EXISTS "${escapedSchema}" CASCADE`,
+      );
       await dataSource.destroy();
     }
   });
@@ -139,7 +145,9 @@ describe("YardPulse PostgreSQL API integration", () => {
       .send({ ...body, truck_plate: "DXB-54321" });
     expect(changedBody.status).toBe(422);
     expect(changedBody.body.code).toBe("idempotency_key_reused");
-    expect(changedBody.headers["content-type"]).toContain("application/problem+json");
+    expect(changedBody.headers["content-type"]).toContain(
+      "application/problem+json",
+    );
     expect(changedBody.body).toMatchObject({
       type: expect.any(String),
       title: expect.any(String),
@@ -149,7 +157,8 @@ describe("YardPulse PostgreSQL API integration", () => {
   });
 
   it("allows exactly one of ten parallel bookings when a slot has one seat", async () => {
-    const { Container } = await import("../src/modules/container/entities/container.entity");
+    const { Container } =
+      await import("../src/modules/container/entities/container.entity");
     const containers = await dataSource!.getRepository(Container).find({
       where: { status: CONTAINER_STATUS.IN_YARD },
       relations: { holds: true, appointments: true },
@@ -179,10 +188,16 @@ describe("YardPulse PostgreSQL API integration", () => {
       ),
     );
 
-    expect(responses.filter((response) => response.status === 201)).toHaveLength(1);
-    const fullSlotResponses = responses.filter((response) => response.status === 409);
+    expect(
+      responses.filter((response) => response.status === 201),
+    ).toHaveLength(1);
+    const fullSlotResponses = responses.filter(
+      (response) => response.status === 409,
+    );
     expect(fullSlotResponses).toHaveLength(9);
-    expect(fullSlotResponses.every((response) => response.body.code === "slot_full")).toBe(true);
+    expect(
+      fullSlotResponses.every((response) => response.body.code === "slot_full"),
+    ).toBe(true);
     expect(fullSlotResponses[0].headers["content-type"]).toContain(
       "application/problem+json",
     );
@@ -200,7 +215,9 @@ describe("YardPulse PostgreSQL API integration", () => {
       .get("/api/v1/containers/BRLU0000017")
       .set("Authorization", `Bearer ${aliceToken}`);
     expect(response.status).toBe(404);
-    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(response.headers["content-type"]).toContain(
+      "application/problem+json",
+    );
     expect(response.body.code).toBe("not_found");
     expect(response.body).toMatchObject({
       type: expect.any(String),
@@ -213,7 +230,9 @@ describe("YardPulse PostgreSQL API integration", () => {
   it("returns the same problem shape for unauthenticated requests", async () => {
     const response = await request(app).get("/api/v1/me");
     expect(response.status).toBe(401);
-    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(response.headers["content-type"]).toContain(
+      "application/problem+json",
+    );
     expect(response.body).toMatchObject({
       type: expect.any(String),
       title: expect.any(String),
@@ -224,10 +243,13 @@ describe("YardPulse PostgreSQL API integration", () => {
   });
 
   it("seeds fixed-container timestamps in Dubai local time", async () => {
-    const { Container } = await import("../src/modules/container/entities/container.entity");
-    const container = await dataSource!.getRepository(Container).findOneByOrFail({
-      containerNo: "ALNU1234567",
-    });
+    const { Container } =
+      await import("../src/modules/container/entities/container.entity");
+    const container = await dataSource!
+      .getRepository(Container)
+      .findOneByOrFail({
+        containerNo: "ALNU1234567",
+      });
     const seededTime = DateTime.fromJSDate(container.dischargedAt!).setZone(
       "Asia/Dubai",
     );
@@ -288,7 +310,9 @@ describe("YardPulse PostgreSQL API integration", () => {
         truck_plate: "DXB-12345",
       });
     expect(missingKey.status).toBe(400);
-    expect(missingKey.headers["content-type"]).toContain("application/problem+json");
+    expect(missingKey.headers["content-type"]).toContain(
+      "application/problem+json",
+    );
     expect(missingKey.body).toMatchObject({
       type: expect.any(String),
       title: expect.any(String),
@@ -314,12 +338,16 @@ describe("YardPulse PostgreSQL API integration", () => {
     expect(offHour.status).toBe(400);
     expect(offHour.body.code).toBe("validation_failed");
     expect(offHour.body.errors).toContainEqual(
-      expect.objectContaining({ field: "slot_start", message: expect.any(String) }),
+      expect.objectContaining({
+        field: "slot_start",
+        message: expect.any(String),
+      }),
     );
   });
 
   it("serializes simultaneous bookings for the same container in different slots", async () => {
-    const { Container } = await import("../src/modules/container/entities/container.entity");
+    const { Container } =
+      await import("../src/modules/container/entities/container.entity");
     const candidates = await dataSource!.getRepository(Container).find({
       where: { status: CONTAINER_STATUS.IN_YARD },
       relations: { holds: true, appointments: true },
@@ -356,8 +384,12 @@ describe("YardPulse PostgreSQL API integration", () => {
           truck_plate: "DXB-20202",
         }),
     ]);
-    expect(responses.filter((response) => response.status === 201)).toHaveLength(1);
-    expect(responses.filter((response) => response.status === 409)).toHaveLength(1);
+    expect(
+      responses.filter((response) => response.status === 201),
+    ).toHaveLength(1);
+    expect(
+      responses.filter((response) => response.status === 409),
+    ).toHaveLength(1);
     expect(
       responses.some((response) => response.body.code === "appointment_exists"),
     ).toBe(true);
