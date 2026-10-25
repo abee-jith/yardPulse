@@ -23,6 +23,35 @@ Set the database credentials, `JWT_SECRET`, and `CORS_ORIGIN` in `.env`. Point
 `DB_SCHEMA` must be an existing or creatable PostgreSQL schema name; the
 application creates it before applying migrations.
 
+### Start PostgreSQL and pgAdmin with Docker
+
+After configuring `.env`, start the database and pgAdmin from `backend/`:
+
+```sh
+docker compose up -d
+docker compose ps
+```
+
+Open pgAdmin. Sign in with
+`PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` if set in `.env`.
+Otherwise, the local Compose defaults are `admin@yardpulse.local` and
+`yardpulse-local-only`; change these for your development environment.
+
+In pgAdmin, register a server and use `postgres` as the host and `5432` as the
+port. Use `DB_NAME`, `DB_USER`, and `DB_PASSWORD` from `.env` for the database,
+username, and password. Since pgAdmin runs in the Compose network, its database
+host is `postgres`; the backend running directly on your computer uses
+`DB_HOST` (usually `localhost`) and the published `DB_PORT`.
+
+Stop the containers while preserving their data with:
+
+```sh
+docker compose down
+```
+
+Do not use `docker compose down -v` unless you intend to delete the persisted
+database and pgAdmin data.
+
 Start the API and seed its deterministic data:
 
 ```sh

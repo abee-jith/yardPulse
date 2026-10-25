@@ -7,8 +7,8 @@ backend must allow the frontend's origin through CORS.
 ## Requirements
 
 - Node.js 20 or newer and npm
-- PostgreSQL with a database and a user that can create/use the configured
-  schema
+- Docker Desktop (or Docker Engine with the Compose plugin) for PostgreSQL and
+  pgAdmin
 - The environment configuration supplied with the assessment/submission
 
 ## Environment setup
@@ -44,6 +44,31 @@ secrets into this README, source files, or commits.
 The `.env.example` files contain templates/defaults, not the private values
 from the submission environment. If the submission provides a different port
 or origin, make both environment files agree.
+
+## Start the database and pgAdmin
+
+Create `backend/.env` as described above. From the `backend/` directory, start
+PostgreSQL and pgAdmin with Docker Compose:
+
+```sh
+cd backend
+docker compose up -d
+docker compose ps
+```
+
+Open pgAdmin at and sign in with
+`PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` from `backend/.env`. If
+you have not set those optional variables, the local Compose defaults are
+`admin@yardpulse.local` and `yardpulse-local-only`; change them for your own
+development environment. In pgAdmin, register a server with host
+`postgres`, port `5432`, and the database name, username, and password from
+`backend/.env`. The hostname `postgres` works from pgAdmin inside Docker;
+the backend running directly on your computer connects using `DB_HOST` (usually
+`localhost`) and the published `DB_PORT`.
+
+To stop the services without deleting the database or pgAdmin data, run
+`docker compose down` from `backend/`. Do not add `-v` unless you intend to
+delete the persisted database and pgAdmin data.
 
 ## Install and run
 
@@ -222,6 +247,8 @@ see.
 Logout should revoke the stored refresh token and clear the client's
 credentials; refresh should validate and rotate a hashed, single-use refresh
 token, revoke the previous token, and issue a new short-lived access token.
+The refresh api is not implemented however the schema for the refreshtoken
+is added in the Backend
 The backend already applies a global per-client rate limit of 100 requests
 per 15 minutes, but it should be supplemented with stricter login and refresh
 limits and a shared store such as Redis when running multiple server
