@@ -10,12 +10,13 @@ export const middlewares = [
   helmet(),
 
   cors({
-    origin: env.nodeEnv === "development" ? "*" : env.corsOrigin,
+    origin: env.corsOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
+      "Idempotency-Key",
       "lang",
       "x-custom-header",
     ],
