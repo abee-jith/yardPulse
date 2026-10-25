@@ -9,7 +9,7 @@ export const listContainersSchema = z.object({
     .transform((value) => value === "true")
     .optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
-  cursor: z.coerce.number().int().positive().optional(),
+  cursor: z.coerce.number().int().optional(),
 });
 
 export const findContainerSchema = z.object({

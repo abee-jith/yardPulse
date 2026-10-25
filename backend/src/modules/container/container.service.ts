@@ -1,14 +1,15 @@
-import {
-  FindContainerQuery,
-  ListContainersQuery,
-  listContainersSchema,
-} from "./container.schema";
+import { FindContainerQuery, ListContainersQuery } from "./container.schema";
 import {
   findContainerByContainerNumber,
   findContainers,
 } from "./container.repository";
 import { Container } from "./entities/container.entity";
 import { entityNotFoundError, parseErrorRespose } from "../../utils/helper";
+import { Hold } from "./entities/hold.entity";
+import { AppDataSource } from "../../config/database";
+import { USER_ROLE } from "../../common/enum";
+
+const containerRepository = AppDataSource.getRepository(Container);
 
 function serializeContainer(container: Container) {
   return {
@@ -23,6 +24,7 @@ function serializeContainer(container: Container) {
     weight_kg: container.weightKg,
     discharged_at: container.dischargedAt,
     gate_out_at: container.gateOutAt,
+    created_at: container.createdAt,
   };
 }
 
@@ -32,29 +34,70 @@ export async function listContainers({
 }: {
   input: ListContainersQuery;
   user: ReqUser;
-}): Promise<ServiceResponseWithCount> {
+}): Promise<ServiceResponse> {
   try {
-    const result = await findContainers({
-      q: input.q,
-      status: input.status,
-      has_active_hold: input.has_active_hold,
-      limit: input.limit,
-      cursor: input.cursor,
-    });
+    const limit = Number(input.limit ?? 25);
+    const qb = containerRepository.createQueryBuilder("container");
 
-    const lastItem = result.items[result.items.length - 1];
+    if (user.role !== USER_ROLE.OPERATOR) {
+      qb.andWhere("container.lineCode = :lineCode", {
+        lineCode: user.lineCode,
+      });
+    }
+
+    if (input.q) {
+      const escaped = input.q.replace(/[\\%_]/g, "\\$&");
+
+      qb.andWhere(`container.containerNo ILIKE :q ESCAPE '\\'`, {
+        q: `${escaped}%`,
+      });
+    }
+
+    if (input.status) {
+      qb.andWhere("container.status = :status", {
+        status: input.status,
+      });
+    }
+
+    if (input.cursor !== undefined) {
+      qb.andWhere("container.id > :cursor", {
+        cursor: input.cursor,
+      });
+    }
+
+    if (input.has_active_hold !== undefined) {
+      const holdExists = qb
+        .subQuery()
+        .select("1")
+        .from(Hold, "hold")
+        .where("hold.container_id = container.id")
+        .andWhere("hold.released_at IS NULL")
+        .getQuery();
+
+      qb.andWhere(
+        `${input.has_active_hold ? "EXISTS" : "NOT EXISTS"} ${holdExists}`,
+      );
+    }
+
+    const rows = await findContainers(qb, limit);
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+    const lastItem = items[items.length - 1];
 
     return {
       status: 200,
-      message: "Containers listed successfully",
-      data: result.items.map(serializeContainer),
+      detail: "Containers listed successfully",
+      data: items.map(serializeContainer),
       page: {
-        limit: Number(input.limit) ?? 25,
-        next_cursor: result.hasMore && lastItem ? String(lastItem.id) : null,
+        limit,
+        next_cursor: hasMore && lastItem ? String(lastItem.id) : null,
       },
     };
   } catch (error) {
-    return parseErrorRespose({ error, message: "List containers error" });
+    return parseErrorRespose({
+      error,
+      message: "List containers error",
+    });
   }
 }
 
@@ -64,22 +107,29 @@ export async function findContainerData({
 }: {
   params: FindContainerQuery;
   user: ReqUser;
-}): Promise<ServiceResponseWithCount> {
+}): Promise<ServiceResponse> {
   try {
     const result = await findContainerByContainerNumber({
       containerNumber: params.containerNumber,
+      user,
     });
 
     if (!result) return entityNotFoundError("Container");
 
     return {
       status: 200,
-      message: "Container found successfully",
+      detail: "Container found successfully",
       data: {
         ...serializeContainer(result),
-        appointments: result.appointments,
-        events: result.events,
-        holds: result.holds,
+        appointments: result.appointments.filter(
+          (appointment) => appointment.status === "BOOKED",
+        ),
+        events: [...result.events].sort(
+          (left, right) =>
+            new Date(right.occurredAt).getTime() -
+            new Date(left.occurredAt).getTime(),
+        ),
+        holds: result.holds.filter((hold) => hold.releasedAt === null),
         vessel_visits: result.vesselVisit,
       },
     };
