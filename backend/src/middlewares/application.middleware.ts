@@ -10,12 +10,13 @@ export const middlewares = [
   helmet(),
 
   cors({
-    origin: env.nodeEnv === "development" ? "*" : env.corsOrigin,
+    origin: env.corsOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
+      "Idempotency-Key",
       "lang",
       "x-custom-header",
     ],
@@ -26,6 +27,17 @@ export const middlewares = [
     limit: 100,
     standardHeaders: "draft-8",
     legacyHeaders: false,
+    handler: (_req, res) =>
+      res
+        .status(429)
+        .set("Content-Type", "application/problem+json")
+        .json({
+          type: "https://yardpulse.test/problems/rate-limited",
+          title: "Too many requests",
+          status: 429,
+          code: "rate_limited",
+          detail: "Too many requests. Please try again later.",
+        }),
   }),
 
   express.json({

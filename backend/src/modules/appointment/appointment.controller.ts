@@ -5,6 +5,7 @@ import {
   idempotencyKeySchema,
 } from "./appointment.schema";
 import { createAppointment } from "./appointment.service";
+import { sendServiceResponse } from "../../utils/problem";
 
 export async function createAppointmentController(req: Request, res: Response) {
   const input = createAppointmentSchema.parse(req.body);
@@ -18,5 +19,5 @@ export async function createAppointmentController(req: Request, res: Response) {
     user: req.user!,
   } as any);
 
-  return res.status(result.status).json(result);
+  return sendServiceResponse(res, result);
 }

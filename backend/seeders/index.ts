@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { AppDataSource } from "../src/config/database";
+import { AppDataSource, initializeDatabase } from "../src/config/database";
 
 import { seedUsers } from "./user.seeder";
 import { seedVesselVisits } from "./vessel-visit.seeder";
@@ -9,7 +9,7 @@ import { seedHolds } from "./hold.seeder";
 
 async function seed(): Promise<void> {
   try {
-    await AppDataSource.initialize();
+    await initializeDatabase();
 
     await seedUsers(AppDataSource);
     await seedVesselVisits(AppDataSource);

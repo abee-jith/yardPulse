@@ -3,11 +3,11 @@ import "reflect-metadata";
 
 import app from "./app";
 import { env } from "./config/env";
-import { AppDataSource } from "./config/database";
+import { initializeDatabase } from "./config/database";
 
 const startServer = async () => {
   try {
-    await AppDataSource.initialize();
+    await initializeDatabase();
     app.listen(env.port, () => {
       console.log(`Server running on http://localhost:${env.port}`);
     });

@@ -7,7 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:dev": "cross-env NODE_ENV=development tsx seeders/index.ts"
+    "seed:dev": "cross-env NODE_ENV=development tsx seeders/index.ts",
+    "test:integration": "vitest run --config vitest.config.mts",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "",
@@ -37,9 +39,11 @@
     "@types/luxon": "^3.7.6",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
     "i": "^0.3.7",
-    "npm": "^11.21.1",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
   }
 }

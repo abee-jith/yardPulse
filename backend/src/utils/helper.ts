@@ -1,4 +1,3 @@
-import { QueryFailedError } from "typeorm";
 import { env } from "../config/env";
 
 export const daysAgo = (days: number, hour: number): Date => {
@@ -8,13 +7,13 @@ export const daysAgo = (days: number, hour: number): Date => {
   return date;
 };
 
-export function entityNotFoundError(entity: String) {
+export function entityNotFoundError(entity: string) {
   return {
-    type: `https://yardpulse.test/problems/entity-not-found/${entity.toLowerCase()}`,
-    title: "Entity not found",
+    type: "https://yardpulse.test/problems/not-found",
+    title: `${entity} not found`,
     status: 404,
-    code: "entity_not_found",
-    detail: `${entity} not found`,
+    code: "not_found",
+    detail: `The requested ${entity.toLowerCase()} does not exist or is not available.`,
   };
 }
 
@@ -39,41 +38,7 @@ export function parseErrorRespose({
     detail,
   });
 
-  // Handle database unique constraint violation errors
-  // Unused for now, but can be used in future for more specific error handling
-  if (error instanceof QueryFailedError) {
-    const driverError = error.driverError as DriveError;
-
-    if (driverError.code === "23505" && driverError.detail) {
-      const match = driverError.detail.match(
-        /Key \(([^)]+)\)=\(([^)]+)\) already exists\./,
-      );
-
-      if (match) {
-        const [, field] = match;
-
-        const entity = driverError.table
-          ? driverError.table
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (char) => char.toUpperCase())
-          : "Record";
-
-        const formattedField = field
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char) => char.toUpperCase());
-
-        return createResponse(
-          `https://yardpulse.test/problems/duplicate-entry/${entity.toLowerCase()}`,
-          "Duplicate entry",
-          409,
-          "duplicate_entry",
-          `${entity} with ${formattedField.toLowerCase()} already exists`,
-        );
-      }
-    }
-  }
-
-  env.nodeEnv === "development" && console.error(message, error);
+  if (env.nodeEnv === "development") console.error(message, error);
   return createResponse(
     "https://yardpulse.test/problems/server-errors",
     "Internal server error",

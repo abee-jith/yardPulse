@@ -3,9 +3,17 @@ import { Appointment } from "./entities/appointment.entity";
 import { Container } from "../container/entities/container.entity";
 import { Hold } from "../container/entities/hold.entity";
 import { IdempotencyRecord } from "./entities/idempotency-record.entity";
-import { APPOINTMENT_STATUS, CONTAINER_STATUS } from "../../common/enum";
+import {
+  APPOINTMENT_STATUS,
+  CONTAINER_EVENT_TYPE,
+  CONTAINER_STATUS,
+  USER_ROLE,
+} from "../../common/enum";
 import { EntityManager } from "typeorm";
 import { User } from "../user/entities/user.entity";
+import { ContainerEvent } from "../container/entities/event.entity";
+import { env } from "../../config/env";
+import { DateTime } from "luxon";
 
 export async function createAppointmentTransaction({
   user,
@@ -42,6 +50,8 @@ export async function createAppointmentTransaction({
         return {
           status: 422,
           body: {
+            type: "https://yardpulse.test/problems/idempotency-key-reused",
+            title: "Idempotency key reused",
             status: 422,
             code: "idempotency_key_reused",
             detail:
@@ -76,14 +86,26 @@ export async function createAppointmentTransaction({
       return { status, body };
     };
 
-    const container = await manager.getRepository(Container).findOne({
-      where: { containerNo, lineCode: user.lineCode! },
-      relations: { holds: true },
-    });
+    const containerQuery = manager
+      .getRepository(Container)
+      .createQueryBuilder("container")
+      .where("container.containerNo = :containerNo", { containerNo });
+
+    if (user.role !== USER_ROLE.OPERATOR) {
+      containerQuery.andWhere("container.lineCode = :lineCode", {
+        lineCode: user.lineCode,
+      });
+    }
+
+    const container = await containerQuery
+      .setLock("pessimistic_write")
+      .getOne();
 
     // A different line's container must not be disclosed.
     if (!container) {
       return finish(404, {
+        type: "https://yardpulse.test/problems/not-found",
+        title: "Container not found",
         status: 404,
         code: "not_found",
         detail: "Container not found.",
@@ -92,6 +114,8 @@ export async function createAppointmentTransaction({
 
     if (container.status !== CONTAINER_STATUS.IN_YARD) {
       return finish(409, {
+        type: "https://yardpulse.test/problems/container-not-eligible",
+        title: "Container not eligible",
         status: 409,
         code: "container_not_eligible",
         detail: "The container is not eligible for an appointment.",
@@ -109,6 +133,8 @@ export async function createAppointmentTransaction({
 
     if (hasActiveHold) {
       return finish(409, {
+        type: "https://yardpulse.test/problems/container-not-eligible",
+        title: "Container not eligible",
         status: 409,
         code: "container_not_eligible",
         detail: "The container has an active hold.",
@@ -126,6 +152,8 @@ export async function createAppointmentTransaction({
 
     if (existingAppointment) {
       return finish(409, {
+        type: "https://yardpulse.test/problems/appointment-exists",
+        title: "Appointment already exists",
         status: 409,
         code: "appointment_exists",
         detail: "The container already has an active appointment.",
@@ -147,13 +175,17 @@ export async function createAppointmentTransaction({
       },
     });
 
-    const capacity = Number(process.env.SLOT_CAPACITY ?? 20);
+    const capacity = env.slotCapacity;
 
     if (slotCount >= capacity) {
       return finish(409, {
+        type: "https://yardpulse.test/problems/slot-full",
+        title: "Slot is full",
         status: 409,
         code: "slot_full",
-        detail: "The selected appointment slot is full.",
+        detail: `The ${DateTime.fromJSDate(slotStart)
+          .setZone("Asia/Dubai")
+          .toFormat("yyyy-MM-dd'T'HH:mmZZ")} slot has no remaining capacity.`,
       });
     }
 
@@ -168,6 +200,19 @@ export async function createAppointmentTransaction({
     const savedAppointment = await manager
       .getRepository(Appointment)
       .save(appointment);
+
+    await manager.getRepository(ContainerEvent).save(
+      manager.getRepository(ContainerEvent).create({
+        container: { id: container.id },
+        eventType: CONTAINER_EVENT_TYPE.APPOINTMENT_BOOKED,
+        occurredAt: new Date(),
+        details: {
+          appointment_id: savedAppointment.id,
+          slot_start: savedAppointment.slotStart.toISOString(),
+          truck_plate: savedAppointment.truckPlate,
+        },
+      }),
+    );
 
     return finish(201, {
       status: 201,

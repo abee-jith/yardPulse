@@ -15,5 +15,8 @@ export const createAppointmentSchema = z.object({
 });
 
 export const idempotencyKeySchema = z.string().uuid();
+export const idempotencyKeyHeaderSchema = z.object({
+  "Idempotency-Key": idempotencyKeySchema,
+});
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;

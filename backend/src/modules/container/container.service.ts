@@ -7,6 +7,7 @@ import { Container } from "./entities/container.entity";
 import { entityNotFoundError, parseErrorRespose } from "../../utils/helper";
 import { Hold } from "./entities/hold.entity";
 import { AppDataSource } from "../../config/database";
+import { USER_ROLE } from "../../common/enum";
 
 const containerRepository = AppDataSource.getRepository(Container);
 
@@ -37,6 +38,12 @@ export async function listContainers({
   try {
     const limit = Number(input.limit ?? 25);
     const qb = containerRepository.createQueryBuilder("container");
+
+    if (user.role !== USER_ROLE.OPERATOR) {
+      qb.andWhere("container.lineCode = :lineCode", {
+        lineCode: user.lineCode,
+      });
+    }
 
     if (input.q) {
       const escaped = input.q.replace(/[\\%_]/g, "\\$&");
@@ -104,6 +111,7 @@ export async function findContainerData({
   try {
     const result = await findContainerByContainerNumber({
       containerNumber: params.containerNumber,
+      user,
     });
 
     if (!result) return entityNotFoundError("Container");
@@ -113,9 +121,15 @@ export async function findContainerData({
       detail: "Container found successfully",
       data: {
         ...serializeContainer(result),
-        appointments: result.appointments,
-        events: result.events,
-        holds: result.holds,
+        appointments: result.appointments.filter(
+          (appointment) => appointment.status === "BOOKED",
+        ),
+        events: [...result.events].sort(
+          (left, right) =>
+            new Date(right.occurredAt).getTime() -
+            new Date(left.occurredAt).getTime(),
+        ),
+        holds: result.holds.filter((hold) => hold.releasedAt === null),
         vessel_visits: result.vesselVisit,
       },
     };

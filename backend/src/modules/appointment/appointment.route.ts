@@ -4,7 +4,7 @@ import { validate } from "../../middlewares/validation.middleware";
 import { userSchema } from "../user/user.schema";
 import {
   createAppointmentSchema,
-  idempotencyKeySchema,
+  idempotencyKeyHeaderSchema,
 } from "./appointment.schema";
 import { createAppointmentController } from "./appointment.controller";
 
@@ -15,7 +15,7 @@ router.post(
   authenticate,
   validate(userSchema, "user"),
   validate(createAppointmentSchema, "body"),
-  validate(idempotencyKeySchema, "headers"),
+  validate(idempotencyKeyHeaderSchema, "headers"),
   createAppointmentController,
 );
 

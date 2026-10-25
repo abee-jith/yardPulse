@@ -1,6 +1,7 @@
 import { AppDataSource } from "../../config/database";
 import { Container } from "./entities/container.entity";
 import { SelectQueryBuilder } from "typeorm";
+import { USER_ROLE } from "../../common/enum";
 
 const containerRepository = AppDataSource.getRepository(Container);
 
@@ -16,16 +17,24 @@ export async function findContainers(
 
 export async function findContainerByContainerNumber({
   containerNumber,
+  user,
 }: {
   containerNumber: string;
+  user: ReqUser;
 }) {
-  return containerRepository.findOne({
-    where: { containerNo: containerNumber },
-    relations: {
-      vesselVisit: true,
-      holds: true,
-      events: true,
-      appointments: true,
-    },
-  });
+  const query = containerRepository
+    .createQueryBuilder("container")
+    .leftJoinAndSelect("container.vesselVisit", "vesselVisit")
+    .leftJoinAndSelect("container.holds", "holds")
+    .leftJoinAndSelect("container.events", "events")
+    .leftJoinAndSelect("container.appointments", "appointments")
+    .where("container.containerNo = :containerNumber", { containerNumber });
+
+  if (user.role !== USER_ROLE.OPERATOR) {
+    query.andWhere("container.lineCode = :lineCode", {
+      lineCode: user.lineCode,
+    });
+  }
+
+  return query.getOne();
 }

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { findContainerData, listContainers } from "./container.service";
 import { findContainerSchema, listContainersSchema } from "./container.schema";
+import { sendServiceResponse } from "../../utils/problem";
 
 export async function listContainersController(req: Request, res: Response) {
   const query = listContainersSchema.parse(req.query);
@@ -8,7 +9,7 @@ export async function listContainersController(req: Request, res: Response) {
     input: query,
     user: req.user!,
   });
-  return res.status(result.status).json(result);
+  return sendServiceResponse(res, result);
 }
 
 export async function findContainerController(req: Request, res: Response) {
@@ -17,5 +18,5 @@ export async function findContainerController(req: Request, res: Response) {
     params,
     user: req.user!,
   });
-  return res.status(result.status).json(result);
+  return sendServiceResponse(res, result);
 }

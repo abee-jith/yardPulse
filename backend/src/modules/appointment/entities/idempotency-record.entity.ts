@@ -15,8 +15,8 @@ import { User } from "../../user/entities/user.entity";
   unique: true,
 })
 export class IdempotencyRecord extends BaseEntity {
-  @Column({ name: "user_id", type: "uuid" })
-  userId!: string;
+  @Column({ name: "user_id", type: "integer" })
+  userId!: number;
 
   @Column({ name: "idempotency_key", type: "uuid" })
   idempotencyKey!: string;
